@@ -1,0 +1,139 @@
+name: Pull Request Delivery
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - closed
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    if: github.event.action != 'closed'
+    name: Quality
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out pull request
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run complete quality check
+        run: npm run check
+
+      - name: Upload frontend build
+        uses: actions/upload-artifact@v7
+        with:
+          name: frontend-dist
+          path: dist
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Upload Playwright diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-quality-report
+          path: playwright-report
+          if-no-files-found: ignore
+          retention-days: 7
+
+  deploy:
+    if: github.event.action != 'closed'
+    name: Deploy
+    needs:
+      - quality
+    runs-on: ubuntu-latest
+
+    outputs:
+      preview_url: ${{ steps.deploy.outputs.static_web_app_url }}
+
+    steps:
+      - name: Download frontend build
+        uses: actions/download-artifact@v8
+        with:
+          name: frontend-dist
+          path: dist
+
+      - name: Deploy preview
+        id: deploy
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          action: upload
+          app_location: dist
+          skip_app_build: true
+
+  deployed-smoke-test:
+    if: github.event.action != 'closed'
+    name: Deployed smoke test
+    needs:
+      - deploy
+    runs-on: ubuntu-latest
+
+    env:
+      PLAYWRIGHT_BASE_URL: ${{ needs.deploy.outputs.preview_url }}
+
+    steps:
+      - name: Check out pull request
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Require deployed URL
+        run: |
+          if [ -z "$PLAYWRIGHT_BASE_URL" ]; then
+            echo "PLAYWRIGHT_BASE_URL is required"
+            exit 1
+          fi
+
+      - name: Test deployed preview
+        run: npm run test:e2e
+
+      - name: Upload Playwright diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-deployed-smoke-report
+          path: playwright-report
+          if-no-files-found: ignore
+          retention-days: 7
+
+  close-preview:
+    if: github.event.action == 'closed'
+    name: Close Preview
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Remove preview environment
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          action: close
