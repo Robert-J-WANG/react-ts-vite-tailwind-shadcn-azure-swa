@@ -26,6 +26,7 @@ This is a product-neutral UI foundation. It provides reusable UI infrastructure 
 - shadcn/ui configured for TypeScript, CSS variables, Lucide icons, and project-owned component source;
 - Geist Variable as the default UI font;
 - neutral design tokens and global base styles;
+- light and dark themes with system-aware initialisation and local preference persistence;
 - one shadcn/ui `Button` component and its variant API;
 - a mobile-first shared Header, Main, and Footer application shell;
 - minimal styled placeholder routes required to verify layout, navigation, 404, and error handling;
@@ -40,6 +41,7 @@ This is a product-neutral UI foundation. It provides reusable UI infrastructure 
 
 - product-specific visual identity, colour palette, branding, copy, routes, domain components, data, and services;
 - a complete product design or a catalogue of speculative UI components;
+- additional colour themes or a product-specific theme system;
 - shadcn/ui components other than the `Button` required by the template shell;
 - state, form, map, chart, and data libraries not used by the template shell;
 - Azure Functions or an application API;
@@ -81,6 +83,10 @@ react-ts-vite-tailwind-shadcn-azure-swa/
 │   └── staticwebapp.config.json
 ├── src/
 │   ├── app/
+│   │   ├── RootLayout.tsx
+│   │   ├── theme/
+│   │   │   ├── theme.test.ts
+│   │   │   └── theme.ts
 │   │   ├── router/
 │   │   │   ├── router.ts
 │   │   │   ├── routes.test.tsx
@@ -88,8 +94,9 @@ react-ts-vite-tailwind-shadcn-azure-swa/
 │   │   └── App.tsx
 │   ├── components/
 │   │   ├── layout/
-│   │   │   ├── AppShell.tsx
-│   │   │   └── RootLayout.tsx
+│   │   │   └── AppShell.tsx
+│   │   ├── ThemeToggle.test.tsx
+│   │   ├── ThemeToggle.tsx
 │   │   └── ui/
 │   │       └── button.tsx
 │   ├── lib/
@@ -128,6 +135,7 @@ The application uses this entry chain:
 ```text
 index.html
 → src/main.tsx
+→ initialise the saved or system theme
 → src/styles/index.css
 → src/app/App.tsx
 → RouterProvider
@@ -187,13 +195,22 @@ The shared shell provides:
 AppShell
 ├── Header
 │   ├── placeholder application identity
-│   └── accessible primary navigation
+│   └── primary navigation
 ├── Main
 │   └── current route content
 └── Footer
 ```
 
-The shell is mobile-first, uses a constrained content width and responsive gutters, exposes semantic landmark elements, and shows the active navigation state. Placeholder names and copy remain generic and are not a reusable brand.
+The shell is mobile-first, uses a constrained content width and responsive gutters, keeps the Header, Main, and Footer structure clear, and shows the active navigation state. Placeholder names and copy remain generic and are not a reusable brand.
+
+The theme boundary is deliberately small:
+
+- first use follows the operating-system colour-scheme preference;
+- the Header provides one icon button that switches between light and dark themes;
+- an explicit choice is stored in `localStorage` and restored on later visits;
+- the theme class is applied before React renders;
+- theme state uses the existing semantic CSS variables and does not add another runtime dependency;
+- the template does not provide additional palettes or a three-option theme menu.
 
 ### 6.3 TypeScript and build configuration
 
@@ -226,6 +243,8 @@ Route tests verify:
 - an unknown path rendering the not-found page;
 - a deliberately throwing route rendering the route-error page without removing the shared shell.
 
+Theme tests verify system-aware initialisation, saved preference restoration, document theme application, theme switching, and persistence without asserting CSS values.
+
 Playwright is configured as follows:
 
 - tests live in `tests/e2e`;
@@ -238,7 +257,7 @@ Playwright is configured as follows:
 - an existing local server may be reused;
 - when `PLAYWRIGHT_BASE_URL` is set, tests use that deployed URL and do not start Vite.
 
-The browser tests verify loading the application shell, navigating to the secondary route through the primary navigation, and directly opening an unknown URL. Tests assert roles, visible content, document titles, and navigation behaviour rather than Tailwind class names or pixel values.
+The browser tests verify loading the application shell, navigating to the secondary route, directly opening an unknown URL, and persisting an explicit theme choice across reloads. Tests assert visible content, document titles, theme state, and navigation behaviour rather than Tailwind class names or pixel values.
 
 The package scripts are:
 
@@ -401,7 +420,7 @@ The template is complete when the following criteria pass:
 - shadcn/ui is configured through `components.json`, and the project-owned `Button` component works;
 - neutral semantic tokens, Geist Variable, and global base styles load correctly;
 - the shared Header, Main, and Footer shell is usable at mobile and desktop widths;
-- navigation exposes an accessible name and visible active state;
+- navigation exposes a visible active state;
 - ordinary, not-found, and error routes behave correctly inside the shared shell;
 - route and browser tests verify behaviour without coupling to CSS class names or pixel values;
 - `npm run lint`, `npm run test`, `npm run build`, `npm run test:e2e`, and `npm run check` pass;

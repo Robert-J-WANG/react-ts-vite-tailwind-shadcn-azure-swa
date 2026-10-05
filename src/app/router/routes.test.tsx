@@ -3,6 +3,7 @@ import { createMemoryRouter } from "react-router";
 import { RouterProvider } from "react-router/dom";
 import { describe, expect, it, vi } from "vitest";
 
+import { RootLayout } from "@/app/RootLayout";
 import { routes } from "@/app/router/routes";
 import { RouteErrorPage } from "@/pages/RouteErrorPage";
 
@@ -57,8 +58,14 @@ describe("application routes", () => {
       [
         {
           path: "/",
-          ErrorBoundary: RouteErrorPage,
-          Component: BrokenPage,
+          Component: RootLayout,
+          children: [
+            {
+              index: true,
+              ErrorBoundary: RouteErrorPage,
+              Component: BrokenPage,
+            },
+          ],
         },
       ],
       {
