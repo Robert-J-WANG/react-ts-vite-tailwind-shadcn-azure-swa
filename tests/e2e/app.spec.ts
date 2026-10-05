@@ -36,3 +36,16 @@ test("shows the not-found page for an unknown URL", async ({ page }) => {
     }),
   ).toBeVisible();
 });
+
+test("persists an explicit theme choice", async ({ page }) => {
+  await page.emulateMedia({ colorScheme: "light" });
+  await page.goto("/");
+
+  const switchToDark = page.getByTitle("Switch to dark theme");
+  await switchToDark.click();
+
+  await expect(page.locator("html")).toHaveClass(/dark/);
+  await page.reload();
+  await expect(page.locator("html")).toHaveClass(/dark/);
+  await expect(page.getByTitle("Switch to light theme")).toBeVisible();
+});

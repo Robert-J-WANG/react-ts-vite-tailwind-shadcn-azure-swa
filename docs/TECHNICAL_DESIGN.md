@@ -1,16 +1,16 @@
-# React + TypeScript + Vite + Azure Static Web Apps Template
+# React + TypeScript + Vite + Tailwind CSS + shadcn/ui + Azure Static Web Apps Template
 
 ## Technical Design
 
-Repository: `react-ts-vite-azure-swa`
+Repository: `react-ts-vite-tailwind-shadcn-azure-swa`
 
 ## 1. Purpose
 
-This repository provides a reusable engineering foundation for projects using React, TypeScript, Vite, and Azure Static Web Apps.
+This repository provides a reusable UI-enabled engineering foundation for projects using React, TypeScript, Vite, Tailwind CSS, shadcn/ui, and Azure Static Web Apps.
 
-Projects using this stack start with project scaffolding, TypeScript and Vite configuration, automated testing, routing, quality checks, and delivery workflows already present in the repository. Each new repository supplies only its own Azure resource, deployment secret, and GitHub ruleset.
+Projects using this stack start with project scaffolding, TypeScript and Vite configuration, a neutral responsive application shell, Tailwind design tokens, shadcn/ui configuration, automated testing, routing, quality checks, and delivery workflows already present in the repository. Each new repository supplies its own product identity, product UI, Azure resource, deployment secret, and GitHub ruleset.
 
-This is an engineering foundation only. It contains no product-specific code and no reusable UI design.
+This is a product-neutral UI foundation. It provides reusable UI infrastructure without prescribing a product brand or application design.
 
 ## 2. Included foundation
 
@@ -22,7 +22,14 @@ This is an engineering foundation only. It contains no product-specific code and
 - Node.js 24 for local development and CI;
 - `@/` as the alias for `src/`;
 - React Router;
-- minimal placeholder routes required to verify routing, 404, and error handling;
+- Tailwind CSS v4 through the Vite plugin;
+- shadcn/ui configured for TypeScript, CSS variables, Lucide icons, and project-owned component source;
+- Geist Variable as the default UI font;
+- neutral design tokens and global base styles;
+- light and dark themes with system-aware initialisation and local preference persistence;
+- one shadcn/ui `Button` component and its variant API;
+- a mobile-first shared Header, Main, and Footer application shell;
+- minimal styled placeholder routes required to verify layout, navigation, 404, and error handling;
 - Vitest with jsdom;
 - React Testing Library and `jest-dom`;
 - Playwright with Chromium;
@@ -32,14 +39,17 @@ This is an engineering foundation only. It contains no product-specific code and
 
 ## 3. Excluded content
 
-- visual design, component libraries, reusable UI components, and application styling;
-- product-specific copy, branding, routes, domain components, data, and services;
+- product-specific visual identity, colour palette, branding, copy, routes, domain components, data, and services;
+- a complete product design or a catalogue of speculative UI components;
+- additional colour themes or a product-specific theme system;
+- shadcn/ui components other than the `Button` required by the template shell;
+- state, form, map, chart, and data libraries not used by the template shell;
 - Azure Functions or an application API;
 - authentication, database, analytics, and monitoring integrations;
 - real Azure resource identifiers, URLs, tokens, or secrets;
 - project planning documents and learning notes.
 
-Placeholder route content exists only to keep the template runnable and testable. It is not a UI implementation.
+The neutral application shell and placeholder routes exist only to verify the reusable UI foundation. They are not a product interface and must be replaced or adapted by each project.
 
 ## 4. New project starting point
 
@@ -61,27 +71,43 @@ The project files and workflows come from the template. The Azure resource, repo
 ## 5. Repository structure
 
 ```text
-react-ts-vite-azure-swa/
+react-ts-vite-tailwind-shadcn-azure-swa/
 ├── .github/
 │   └── workflows/
 │       ├── pull-request.yml
 │       └── production.yml
+├── components.json
 ├── docs/
 │   └── TECHNICAL_DESIGN.md
 ├── public/
 │   └── staticwebapp.config.json
 ├── src/
 │   ├── app/
+│   │   ├── RootLayout.tsx
+│   │   ├── theme/
+│   │   │   ├── theme.test.ts
+│   │   │   └── theme.ts
 │   │   ├── router/
 │   │   │   ├── router.ts
 │   │   │   ├── routes.test.tsx
 │   │   │   └── routes.tsx
 │   │   └── App.tsx
+│   ├── components/
+│   │   ├── layout/
+│   │   │   └── AppShell.tsx
+│   │   ├── ThemeToggle.test.tsx
+│   │   ├── ThemeToggle.tsx
+│   │   └── ui/
+│   │       └── button.tsx
+│   ├── lib/
+│   │   └── utils.ts
 │   ├── pages/
 │   │   ├── HomePage.tsx
 │   │   ├── SecondaryPage.tsx
 │   │   ├── NotFoundPage.tsx
 │   │   └── RouteErrorPage.tsx
+│   ├── styles/
+│   │   └── index.css
 │   ├── test/
 │   │   └── setup.ts
 │   └── main.tsx
@@ -102,17 +128,21 @@ react-ts-vite-azure-swa/
 └── vite.config.ts
 ```
 
-## 6. Application and configuration baseline
+## 6. Application, UI, and configuration baseline
 
 The application uses this entry chain:
 
 ```text
 index.html
 → src/main.tsx
+→ initialise the saved or system theme
+→ src/styles/index.css
 → src/app/App.tsx
 → RouterProvider
 → router.ts
 → routes.tsx
+→ RootLayout
+→ AppShell
 → current route or RouteErrorPage
 ```
 
@@ -125,7 +155,64 @@ The route table contains:
 route error → RouteErrorPage
 ```
 
-The two ordinary routes provide only enough content and navigation to verify client-side routing. The not-found route verifies unknown URLs. The error boundary handles unexpected route errors without exposing internal details.
+The two ordinary routes provide only enough styled content and navigation to verify the shared shell and client-side routing. The not-found route verifies unknown URLs. The error boundary renders inside the shared shell and handles unexpected route errors without exposing internal details.
+
+### 6.1 UI toolchain
+
+Tailwind CSS uses `@tailwindcss/vite`; the project does not add a legacy `tailwind.config.js` or PostCSS configuration. `src/styles/index.css` imports Tailwind CSS, `tw-animate-css`, the shadcn/ui Tailwind layer, and Geist Variable.
+
+The UI package boundary is limited to:
+
+- `tailwindcss` and `@tailwindcss/vite` for compilation;
+- `shadcn`, `radix-ui`, `class-variance-authority`, and `cn` for the configured component source and variants;
+- `lucide-react` for icons;
+- `tw-animate-css` for component animation utilities;
+- `@fontsource-variable/geist` for the bundled default font.
+
+Package versions are locked in `package-lock.json`. Additional UI packages or shadcn/ui components are added only when a project has a concrete requirement.
+
+`components.json` configures shadcn/ui with these reusable settings:
+
+- component library: Radix UI;
+- style preset: Nova;
+- React Server Components: disabled;
+- TypeScript and TSX: enabled;
+- global CSS: `src/styles/index.css`;
+- CSS variables: enabled;
+- base colour: neutral;
+- icon library: Lucide;
+- component, UI, utility, library, and hook aliases under `@/`.
+
+Generated shadcn/ui source is project-owned code. The template includes only the `Button` component because the placeholder shell uses it. Simple layout remains semantic HTML styled directly with Tailwind utilities. The ESLint exception for `react-refresh/only-export-components` applies only to `src/components/ui` so generated component variant exports do not weaken checks elsewhere.
+
+### 6.2 Theme and layout boundary
+
+The global stylesheet provides a neutral semantic token set for background, foreground, cards, popovers, primary and secondary actions, muted and accent surfaces, borders, inputs, focus rings, destructive actions, radii, page width, page gutter, section spacing, and surface shadow. Components consume semantic token names instead of repeating raw colour values.
+
+The shared shell provides:
+
+```text
+AppShell
+├── Header
+│   ├── placeholder application identity
+│   └── primary navigation
+├── Main
+│   └── current route content
+└── Footer
+```
+
+The shell is mobile-first, uses a constrained content width and responsive gutters, keeps the Header, Main, and Footer structure clear, and shows the active navigation state. Placeholder names and copy remain generic and are not a reusable brand.
+
+The theme boundary is deliberately small:
+
+- first use follows the operating-system colour-scheme preference;
+- the Header provides one icon button that switches between light and dark themes;
+- an explicit choice is stored in `localStorage` and restored on later visits;
+- the theme class is applied before React renders;
+- theme state uses the existing semantic CSS variables and does not add another runtime dependency;
+- the template does not provide additional palettes or a three-option theme menu.
+
+### 6.3 TypeScript and build configuration
 
 TypeScript retains Vite's project-reference structure:
 
@@ -151,10 +238,12 @@ Vitest uses the Vite configuration, the `jsdom` environment, and `src/test/setup
 
 Route tests verify:
 
-- the home route;
-- the secondary route;
+- the home route inside the shared semantic shell;
+- the secondary route and shared navigation;
 - an unknown path rendering the not-found page;
-- a deliberately throwing route rendering the route-error page.
+- a deliberately throwing route rendering the route-error page without removing the shared shell.
+
+Theme tests verify system-aware initialisation, saved preference restoration, document theme application, theme switching, and persistence without asserting CSS values.
 
 Playwright is configured as follows:
 
@@ -168,7 +257,7 @@ Playwright is configured as follows:
 - an existing local server may be reused;
 - when `PLAYWRIGHT_BASE_URL` is set, tests use that deployed URL and do not start Vite.
 
-The browser tests verify loading the home route, navigating to the secondary route, and directly opening an unknown URL.
+The browser tests verify loading the application shell, navigating to the secondary route, directly opening an unknown URL, and persisting an explicit theme choice across reloads. Tests assert visible content, document titles, theme state, and navigation behaviour rather than Tailwind class names or pixel values.
 
 The package scripts are:
 
@@ -204,7 +293,7 @@ Vite copies this file to `dist/staticwebapp.config.json`. Direct access and refr
 
 ## 9. GitHub Actions
 
-The repository must provide an Azure Static Web Apps resource and its deployment secret before the delivery workflows run:
+The repository must provide an Azure Static Web Apps resource and its deployment secret before the delivery workflows can succeed:
 
 ```text
 AZURE_STATIC_WEB_APPS_API_TOKEN
@@ -325,9 +414,15 @@ Ruleset IDs, repository identifiers, and status-check integration IDs are reposi
 The template is complete when the following criteria pass:
 
 - the project is based on the official Vite `react-ts` scaffold;
-- product-specific code and UI implementation are absent;
+- product-specific code, branding, visual identity, and domain UI are absent;
 - strict TypeScript and the `@/` alias work;
-- ordinary, not-found, and error routes behave correctly;
+- Tailwind CSS v4 compiles through the Vite plugin without a legacy Tailwind or PostCSS configuration;
+- shadcn/ui is configured through `components.json`, and the project-owned `Button` component works;
+- neutral semantic tokens, Geist Variable, and global base styles load correctly;
+- the shared Header, Main, and Footer shell is usable at mobile and desktop widths;
+- navigation exposes a visible active state;
+- ordinary, not-found, and error routes behave correctly inside the shared shell;
+- route and browser tests verify behaviour without coupling to CSS class names or pixel values;
 - `npm run lint`, `npm run test`, `npm run build`, `npm run test:e2e`, and `npm run check` pass;
 - `dist/staticwebapp.config.json` exists after the build;
 - the Azure Static Web Apps resource uses `Other` as its deployment source;
